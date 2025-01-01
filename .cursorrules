@@ -1,0 +1,411 @@
+# Dental Application
+
+
+## Code Style and Structure
+- Write concise, technical TypeScript code with accurate examples
+- Use functional and declarative programming patterns;
+- Prefer iteration and modularization over code duplication
+- Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError)
+- Structure repository files as follows:
+```
+
+### 1. Project Structure
+```
+dental-app/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ui/           # Shadcn UI components
+│   │   │   ├── patients/     # Patient-related components
+│   │   │   ├── appointments/ # Appointment components
+│   │   │   ├── treatments/   # Treatment components
+│   │   │   └── shared/       # Shared components
+│   │   ├── views/
+│   │   │   ├── dashboard/
+│   │   │   ├── patients/
+│   │   │   └── appointments/
+│   │   ├── services/         # API integration
+│   │   ├── context/         
+│   │   ├── hooks/
+│   │   ├── types/
+│   │   ├── utils/
+│   │   └── styles/
+│   
+├── backend/
+    ├── app/
+    │   ├── models/
+    │   ├── controllers/
+    │   ├── routes/
+    │   └── services/
+    └── config/
+```
+
+### 2. Key Features to Consider
+- Patient management
+- Appointment scheduling
+- Medical records
+- Treatment plans
+- Billing/Payments
+- Staff management
+- Reports/Analytics
+- Mdeicine Catalog
+- Diagnosis sheet
+
+
+### 3. Technical Recommendations
+```
+Code Style and Structure
+// Use interfaces for data models
+interface Patient {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: Date;
+  contactNumber: string;
+  email: string;
+}
+
+// Use discriminated unions for state
+type AppointmentState = 
+  | { status: 'scheduled'; date: Date }
+  | { status: 'completed'; date: Date; notes: string }
+  | { status: 'cancelled'; reason: string };
+
+// Use enums sparingly, prefer const objects
+const AppointmentStatus = {
+  SCHEDULED: 'scheduled',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled'
+} as const;
+
+Component Structure
+// Use functional components with explicit typing
+interface PatientCardProps {
+  patient: Patient;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+export function PatientCard({ patient, onEdit, onDelete }: PatientCardProps) {
+  return (
+    <Card>
+      {/* Component content */}
+    </Card>
+  );
+}
+
+File Naming Conventions
+Components: PascalCase.tsx (e.g., PatientList.tsx)
+Utilities: camelCase.ts (e.g., dateFormatter.ts)
+Styles: camelCase.css (e.g., patientStyles.css)
+Tests: ComponentName.test.tsx
+
+Import Order
+
+// 1. React and external libraries
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
+// 2. Components
+import { Button } from '@/components/ui/button';
+
+// 3. Types and interfaces
+import type { Patient } from '@/types';
+
+// 4. Utils and helpers
+import { formatDate } from '@/utils/dateFormatter';
+
+// 5. Styles
+import '@/styles/patient.css';
+
+State Management
+
+// AuthContext.tsx
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+interface AuthContext extends AuthState {
+  login: (credentials: Credentials) => Promise<void>;
+  logout: () => void;
+}
+
+API Integration
+// services/api.ts
+export const patientService = {
+  getAll: () => axios.get<Patient[]>('/api/patients'),
+  getById: (id: string) => axios.get<Patient>(`/api/patients/${id}`),
+  create: (data: PatientCreate) => axios.post<Patient>('/api/patients', data),
+  update: (id: string, data: PatientUpdate) => 
+    axios.put<Patient>(`/api/patients/${id}`, data)
+};
+
+UI Components (Shadcn UI)
+npx shadcn-ui@latest add button
+npx shadcn-ui@latest add calendar
+npx shadcn-ui@latest add card
+npx shadcn-ui@latest add form
+npx shadcn-ui@latest add table
+
+Theme Configuration
+// tailwind.config.js
+module.exports = {
+  darkMode: ["class"],
+  content: ["./src/**/*.{ts,tsx}"],
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+  }
+}
+
+Error Handling
+
+interface ApiError {
+  message: string;
+  code: string;
+  details?: Record<string, string[]>;
+}
+
+// Error handling hook
+function useApiError() {
+  const handleError = (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      // Handle API errors
+    }
+    // Handle other errors
+  };
+  
+  return { handleError };
+}
+
+Testing
+
+// PatientCard.test.tsx
+describe('PatientCard', () => {
+  it('should render patient information', () => {
+    // Test implementation
+  });
+
+  it('should handle edit action', () => {
+    // Test implementation
+  });
+});
+
+Git Workflow
+feat: add patient appointment scheduling
+fix: resolve date formatting in calendar
+docs: update API documentation
+style: format patient list component
+refactor: improve error handling
+test: add unit tests for patient service
+
+Branch Naming
+feature/patient-scheduling
+bugfix/appointment-date-format
+hotfix/auth-token-expiry
+
+Security Authentication
+// Protect routes
+export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) return <LoadingSpinner />;
+  if (!isAuthenticated) return <Navigate to="/login" />;
+  
+  return <>{children}</>;
+}
+
+Performance
+Code Splitting
+// Lazy load routes
+const PatientDetails = lazy(() => import('./views/patients/PatientDetails'));
+const AppointmentCalendar = lazy(() => import('./views/appointments/Calendar'));
+```
+
+**Backend (Flask)**:
+- Use Flask-RESTful for API development
+- Flask-PyMongo for MongoDB integration
+- JWT authentication with Flask-JWT-Extended
+- Input validation with Marshmallow
+- CORS handling with Flask-CORS
+
+```python:backend/app/__init__.py
+from flask import Flask
+from flask_pymongo import PyMongo
+from flask_jwt_extended import JWTManager
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+mongo = PyMongo(app)
+jwt = JWTManager(app)
+
+# Register blueprints
+from app.routes import patient_bp, appointment_bp
+app.register_blueprint(patient_bp)
+app.register_blueprint(appointment_bp)
+```
+
+**Database (MongoDB)**:
+- Use MongoDB Atlas for cloud hosting
+- Implement proper indexing for performance
+- Set up data validation rules
+- Plan for data backup and recovery
+
+```python:backend/app/models/patient.py
+from app import mongo
+
+class Patient:
+    def __init__(self):
+        self.collection = mongo.db.patients
+
+    def create_patient(self, data):
+        return self.collection.insert_one(data)
+
+    def get_patient(self, patient_id):
+        return self.collection.find_one({"_id": patient_id})
+```
+
+### 4. Responsive Design Strategy
+- Use CSS Grid and Flexbox for layouts
+- Implement mobile-first design approach
+- Use viewport meta tags
+- Test on multiple devices and browsers
+- Consider implementing a PWA
+
+### 5. Security Considerations
+- Implement JWT authentication
+- HTTPS encryption
+- Input validation
+- XSS protection
+- CSRF protection
+- Data encryption
+- Regular security audits
+
+### 6. Performance Optimization
+- Implement lazy loading
+- Use code splitting
+- Optimize images
+- Implement caching
+- MongoDB indexing
+- API response compression
+
+### 7. Development Workflow
+1. Set up development environment
+2. Create basic frontend structure
+3. Implement backend API endpoints
+4. Add authentication
+5. Develop core features
+6. Add responsive design
+7. Testing and optimization
+8. Deployment
+
+### 8. Deployment Suggestions
+- Frontend: Vercel or Netlify
+- Backend: Heroku or DigitalOcean
+- Database: MongoDB Atlas
+- Use Docker for containerization
+- Implement CI/CD pipeline
+```
+
+
+## Naming Conventions
+- Use lowercase with dashes for directories (e.g., components/form-wizard)
+- Favor named exports for components and utilities
+- Use PascalCase for component files (e.g., VisaForm.tsx)
+- Use camelCase for utility files (e.g., formValidator.ts)
+
+## TypeScript Usage
+- Use TypeScript for all code; prefer interfaces over types
+- Avoid enums; use const objects with 'as const' assertion
+- Use functional components with TypeScript interfaces
+- Define strict types for message passing between different parts of the extension
+- Use absolute imports for all files @/...
+- Avoid try/catch blocks unless there's good reason to translate or handle error in that abstraction
+- Use explicit return types for all functions
+
+
+- Handle permissions properly in manifest.json
+- Use chrome.storage.local for persistent data
+- Implement proper error boundaries and fallbacks
+- Use lib/storage for storage related logic
+- For the async injected scripts in content/, 
+  - they must not close over variables from the outer scope
+  - they must not use imported functions from the outer scope
+  - they must have wrapped error handling so the error message is returned to the caller
+
+## State Management
+- Use React Context for global state when needed
+- Implement proper state persistence using chrome.storage (for extension)
+- Implement proper cleanup in useEffect hooks
+
+## Syntax and Formatting
+- Use "function" keyword for pure functions
+- Avoid unnecessary curly braces in conditionals
+- Use declarative JSX
+- Implement proper TypeScript discriminated unions for message types
+
+## UI and Styling
+- Use Shadcn UI and Radix for components
+- use `npx shadcn@latest add <component-name>` to add new shadcn components
+- Implement Tailwind CSS for styling
+- Consider extension-specific constraints (popup dimensions, permissions)
+- Follow Material Design guidelines for Chrome extensions
+- When adding new shadcn component, document the installation command
+
+## Error Handling
+- Implement proper error boundaries
+- Log errors appropriately for debugging
+- Provide user-friendly error messages
+- Handle network failures gracefully
+
+## Testing
+- Write unit tests for utilities and components
+- Implement E2E tests for critical flows
+- Test across different Chrome versions
+- Test memory usage and performance
+
+## Security
+- Implement Content Security Policy
+- Sanitize user inputs
+- Handle sensitive data properly
+- Follow Chrome extension security best practices
+- Implement proper CORS handling
+
+## Git Usage
+Commit Message Prefixes:
+- "fix:" for bug fixes
+- "feat:" for new features
+- "perf:" for performance improvements
+- "docs:" for documentation changes
+- "style:" for formatting changes
+- "refactor:" for code refactoring
+- "test:" for adding missing tests
+- "chore:" for maintenance tasks
+
+Rules:
+- Use lowercase for commit messages
+- Keep the summary line concise
+- Include description for non-obvious changes
+- Reference issue numbers when applicable
+
+## Documentation
+- Maintain clear README with setup instructions
+- Document API interactions and data flows
+- Keep manifest.json well-documented
+- Don't include comments unless it's for complex logic
+- Document permission requirements
+
+## Development Workflow
+- Use proper version control
+- Implement proper code review process
+- Test in multiple environments
+- Follow semantic versioning for releases
+- Maintain changelog
