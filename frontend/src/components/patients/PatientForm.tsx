@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const addressSchema = z.object({
     street: z.string().min(1, "Street is required"),
@@ -167,139 +168,23 @@ export function PatientForm({ open, onOpenChange, patient }: PatientFormProps) {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
+            <DialogContent className="sm:max-w-3xl h-[90vh] p-0 flex flex-col">
+                <DialogHeader className="px-6 py-4 bg-white border-b">
                     <DialogTitle>{patient ? "Edit" : "Add"} Patient</DialogTitle>
                 </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="firstName"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>First Name</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="lastName"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Last Name</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="dateOfBirth"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Date of Birth</FormLabel>
-                                    <FormControl>
-                                        <Input type="date" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="contactNumber"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Contact Number</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Email</FormLabel>
-                                    <FormControl>
-                                        <Input type="email" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="address.street"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Street</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="address.city"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>City</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="address.state"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>State</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="address.postal_code"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Postal Code</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <div className="space-y-2">
-                            <h3 className="font-medium">Medical History</h3>
-                            {form.watch("medicalHistory")?.map((_, index) => (
-                                <div key={index} className="space-y-4 p-4 border rounded-lg">
+                <ScrollArea className="flex-1 px-6 overflow-y-auto">
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Personal Information */}
+                                <div className="space-y-4">
+                                    <h3 className="font-medium">Personal Information</h3>
                                     <FormField
                                         control={form.control}
-                                        name={`medicalHistory.${index}.condition`}
+                                        name="firstName"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Condition</FormLabel>
+                                                <FormLabel>First Name</FormLabel>
                                                 <FormControl>
                                                     <Input {...field} />
                                                 </FormControl>
@@ -309,10 +194,23 @@ export function PatientForm({ open, onOpenChange, patient }: PatientFormProps) {
                                     />
                                     <FormField
                                         control={form.control}
-                                        name={`medicalHistory.${index}.diagnosed_date`}
+                                        name="lastName"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Diagnosed Date</FormLabel>
+                                                <FormLabel>Last Name</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="dateOfBirth"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Date of Birth</FormLabel>
                                                 <FormControl>
                                                     <Input type="date" {...field} />
                                                 </FormControl>
@@ -322,10 +220,10 @@ export function PatientForm({ open, onOpenChange, patient }: PatientFormProps) {
                                     />
                                     <FormField
                                         control={form.control}
-                                        name={`medicalHistory.${index}.notes`}
+                                        name="contactNumber"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Notes</FormLabel>
+                                                <FormLabel>Contact Number</FormLabel>
                                                 <FormControl>
                                                     <Input {...field} />
                                                 </FormControl>
@@ -333,49 +231,175 @@ export function PatientForm({ open, onOpenChange, patient }: PatientFormProps) {
                                             </FormItem>
                                         )}
                                     />
+                                    <FormField
+                                        control={form.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Email</FormLabel>
+                                                <FormControl>
+                                                    <Input type="email" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
+                                {/* Address Information */}
+                                <div className="space-y-4">
+                                    <h3 className="font-medium">Address</h3>
+                                    <FormField
+                                        control={form.control}
+                                        name="address.street"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Street</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="address.city"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>City</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="address.state"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>State</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="address.postal_code"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Postal Code</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Medical History Section */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-medium">Medical History</h3>
                                     <Button
                                         type="button"
-                                        variant="destructive"
+                                        variant="outline"
                                         size="sm"
                                         onClick={() => {
                                             const currentHistory = form.getValues("medicalHistory")
-                                            form.setValue(
-                                                "medicalHistory",
-                                                currentHistory.filter((_, i) => i !== index)
-                                            )
+                                            form.setValue("medicalHistory", [
+                                                ...currentHistory,
+                                                { condition: "", diagnosed_date: "", notes: "" },
+                                            ])
                                         }}
                                     >
-                                        Remove
+                                        Add Medical History
                                     </Button>
                                 </div>
-                            ))}
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                    const currentHistory = form.getValues("medicalHistory")
-                                    form.setValue("medicalHistory", [
-                                        ...currentHistory,
-                                        { condition: "", diagnosed_date: "", notes: "" },
-                                    ])
-                                }}
-                            >
-                                Add Medical History
-                            </Button>
-                        </div>
-                        <div className="flex justify-end space-x-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => onOpenChange(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button type="submit">Save</Button>
-                        </div>
-                    </form>
-                </Form>
+                                <div className="space-y-4">
+                                    {form.watch("medicalHistory")?.map((_, index) => (
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
+                                            <FormField
+                                                control={form.control}
+                                                name={`medicalHistory.${index}.condition`}
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Condition</FormLabel>
+                                                        <FormControl>
+                                                            <Input {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={form.control}
+                                                name={`medicalHistory.${index}.diagnosed_date`}
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Diagnosed Date</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="date" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <div className="md:col-span-2">
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`medicalHistory.${index}.notes`}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Notes</FormLabel>
+                                                            <FormControl>
+                                                                <Input {...field} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="md:col-span-2 flex justify-end">
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const currentHistory = form.getValues("medicalHistory")
+                                                        form.setValue(
+                                                            "medicalHistory",
+                                                            currentHistory.filter((_, i) => i !== index)
+                                                        )
+                                                    }}
+                                                >
+                                                    Remove
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </form>
+                    </Form>
+                </ScrollArea>
+                <div className="px-6 py-4 bg-white border-t flex justify-end space-x-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                    >
+                        Cancel
+                    </Button>
+                    <Button type="submit" onClick={form.handleSubmit(onSubmit)}>Save</Button>
+                </div>
             </DialogContent>
         </Dialog>
     )
