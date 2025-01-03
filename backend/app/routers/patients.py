@@ -4,7 +4,7 @@ from ..models.patient import PatientCreate, PatientUpdate, PatientResponse
 from ..services.patient import PatientService
 from bson import ObjectId
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["patients"])
 patient_service = PatientService()
 
 @router.post("/patients", response_model=PatientResponse, status_code=201)

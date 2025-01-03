@@ -36,7 +36,7 @@ class Address(BaseModel):
 class MedicalHistory(BaseModel):
     condition: str
     diagnosed_date: datetime
-    notes: str
+    notes: str = ""
 
 class PatientBase(BaseModel):
     first_name: str = Field(..., min_length=1)
