@@ -5,6 +5,16 @@ import { Input } from "@/components/ui/input"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useToast } from "@/hooks/use-toast"
 import { PatientForm } from "./PatientForm"
+import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
 
 interface Address {
     street: string
@@ -21,6 +31,7 @@ interface MedicalHistory {
 
 interface Patient {
     id: string
+    _id: string
     firstName: string
     lastName: string
     dateOfBirth: string
@@ -72,6 +83,7 @@ function formatDateForDisplay(dateString: string): string {
 function mapBackendPatient(patient: BackendPatient): Patient {
     return {
         id: patient._id,
+        _id: patient._id,
         firstName: patient.first_name,
         lastName: patient.last_name,
         dateOfBirth: formatDateForInput(patient.date_of_birth),
@@ -93,12 +105,19 @@ function mapBackendPatient(patient: BackendPatient): Patient {
     }
 }
 
+interface PatientListProps {
+    patients: Patient[];
+    onEdit: (patient: Patient) => void;
+    onDelete: (id: string) => void;
+}
+
 export function PatientList() {
     const [search, setSearch] = useState("")
     const [isAddOpen, setIsAddOpen] = useState(false)
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
     const debouncedSearch = useDebounce(search, 500)
     const { toast } = useToast()
+    const navigate = useNavigate();
 
     const { data, isLoading, error } = useQuery<BackendPatient[]>({
         queryKey: ["patients", debouncedSearch],
@@ -169,51 +188,54 @@ export function PatientList() {
                 <Button onClick={() => setIsAddOpen(true)}>Add Patient</Button>
             </div>
 
-            <div className="rounded-md border">
-                <table className="w-full">
-                    <thead>
-                        <tr className="border-b bg-muted/50 text-sm">
-                            <th className="p-2 text-left font-medium">Name</th>
-                            <th className="p-2 text-left font-medium">Date of Birth</th>
-                            <th className="p-2 text-left font-medium">Contact</th>
-                            <th className="p-2 text-left font-medium">Email</th>
-                            <th className="p-2 text-left font-medium">Address</th>
-                            <th className="p-2 text-left font-medium">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {patients?.map((patient) => (
-                            <tr key={patient.id} className="border-b">
-                                <td className="p-2">
-                                    {patient.firstName} {patient.lastName}
-                                </td>
-                                <td className="p-2">{formatDateForDisplay(patient.dateOfBirth)}</td>
-                                <td className="p-2">{patient.contactNumber}</td>
-                                <td className="p-2">{patient.email}</td>
-                                <td className="p-2">{patient.address.street}, {patient.address.city}, {patient.address.state}, {patient.address.postal_code}</td>
-                                <td className="p-2">
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setSelectedPatient(patient)}
-                                        >
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() => handleDelete(patient.id)}
-                                        >
-                                            Delete
-                                        </Button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Date of Birth</TableHead>
+                        <TableHead>Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {patients.map((patient) => (
+                        <TableRow key={patient._id}>
+                            <TableCell>
+                                {patient.firstName} {patient.lastName}
+                            </TableCell>
+                            <TableCell>{patient.email}</TableCell>
+                            <TableCell>{patient.contactNumber}</TableCell>
+                            <TableCell>
+                                {format(new Date(patient.dateOfBirth), 'PP')}
+                            </TableCell>
+                            <TableCell className="space-x-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => navigate(`/patients/${patient._id}/treatment`)}
+                                >
+                                    Treatment
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSelectedPatient(patient)}
+                                >
+                                    Edit
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => handleDelete(patient._id)}
+                                >
+                                    Delete
+                                </Button>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
 
             <PatientForm
                 open={isAddOpen}

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .database import Database
 from .routers import doctor_router, appointment_router, appointment_settings_router, patients_router
+from .routers.treatments import router as treatment_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -14,10 +15,12 @@ async def lifespan(app: FastAPI):
         from .services.doctor import DoctorService
         from .services.appointment import AppointmentService
         from .services.patient import PatientService
+        from .services.treatment_service import TreatmentService
         
         doctor_service = DoctorService()
         appointment_service = AppointmentService()
         patient_service = PatientService()
+        treatment_service = TreatmentService()
         
         await doctor_service.create_indexes()
         await appointment_service.create_indexes()
@@ -55,6 +58,7 @@ app.include_router(doctor_router)
 app.include_router(appointment_router)
 app.include_router(appointment_settings_router)
 app.include_router(patients_router)
+app.include_router(treatment_router)
 
 @app.get("/")
 async def root():

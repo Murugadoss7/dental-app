@@ -6,6 +6,9 @@ import { PatientList } from "@/components/patients/PatientList";
 import { DoctorList } from "@/components/doctors/DoctorList";
 import { AppointmentList } from "@/components/appointments/AppointmentList";
 import { AppointmentSettings } from "@/components/settings/AppointmentSettings";
+import { lazy, Suspense } from "react";
+
+const Treatment = lazy(() => import("@/pages/Treatment"));
 
 const queryClient = new QueryClient();
 
@@ -20,6 +23,10 @@ function App() {
             <Route path="/doctors" element={<DoctorList />} />
             <Route path="/appointments" element={<AppointmentList />} />
             <Route path="/settings" element={<AppointmentSettings />} />
+            <Route
+              path="/patients/:patientId/treatment"
+              element={<Suspense fallback={<div>Loading...</div>}><Treatment /></Suspense>}
+            />
           </Route>
         </Routes>
       </BrowserRouter>
