@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
+import logging
 from ..models.appointment import (
     AppointmentCreate,
     AppointmentUpdate,
@@ -11,16 +12,22 @@ from ..models.appointment import (
 )
 from ..services.appointment import AppointmentService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["appointments"])
 appointment_service = AppointmentService()
 
 @router.post("/appointments", response_model=AppointmentResponse, status_code=201)
 async def create_appointment(appointment: AppointmentCreate):
     try:
-        return await appointment_service.create_appointment(appointment)
+        logger.info(f"Creating appointment with data: {appointment.model_dump(exclude={'patient_id', 'doctor_id'})}")
+        result = await appointment_service.create_appointment(appointment)
+        logger.info(f"Successfully created appointment with ID: {result.id}")
+        return result
     except ValueError as e:
+        logger.error(f"Validation error in create_appointment: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        logger.error(f"Unexpected error in create_appointment: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/appointments", response_model=List[AppointmentResponse])

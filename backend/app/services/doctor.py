@@ -3,6 +3,7 @@ from typing import List, Optional
 from bson import ObjectId
 from ..models.doctor import DoctorCreate, DoctorUpdate, DoctorInDB
 from ..database import Database
+import logging
 
 class DoctorService:
     async def get_collection(self):
@@ -79,28 +80,43 @@ class DoctorService:
         settings: dict
     ) -> List[dict]:
         """Get available appointment slots for a doctor on a given date."""
+        logger = logging.getLogger(__name__)
+
         doctor = await self.get_doctor(doctor_id)
         if not doctor:
             raise ValueError("Doctor not found")
 
         # Get working hours for the day
-        day_name = date.strftime("%A").lower()
+        day_name = date.strftime("%A").lower()  # e.g. "monday"
+        logger.info(f"Checking slots for {day_name}")
+        logger.info(f"All working hours: {[wh.model_dump() for wh in doctor.working_hours]}")
+        
         working_hours = next(
-            (wh for wh in doctor.working_hours if wh.day.lower() == day_name and wh.is_working),
+            (wh for wh in doctor.working_hours 
+             if wh.day.lower() == day_name and wh.is_working),
             None
         )
+        logger.info(f"Working hours found: {working_hours.model_dump() if working_hours else None}")
+        
         if not working_hours:
+            logger.warning(f"No working hours found for {day_name}")
             return []
 
         # Parse working hours
-        start_time = datetime.strptime(working_hours.start_time, "%H:%M").time()
-        end_time = datetime.strptime(working_hours.end_time, "%H:%M").time()
+        try:
+            start_time = datetime.strptime(working_hours.start_time, "%H:%M").time()
+            end_time = datetime.strptime(working_hours.end_time, "%H:%M").time()
+            logger.info(f"Working hours: {start_time} to {end_time}")
+        except ValueError as e:
+            logger.error(f"Error parsing working hours: {e}")
+            raise ValueError(f"Invalid working hours format: {e}")
 
         # Get break hours for the day
         break_hours = [
             bh for bh in doctor.break_hours
             if bh.day.lower() == day_name
         ]
+        logger.info(f"Break hours: {[bh.model_dump() for bh in break_hours]}")
 
         # Generate slots
         slots = []
@@ -108,6 +124,9 @@ class DoctorService:
         end_datetime = datetime.combine(date, end_time)
         slot_duration = timedelta(minutes=settings.get("slot_duration", 30))
         buffer_time = timedelta(minutes=settings.get("buffer_time", 5))
+        
+        logger.info(f"Generating slots from {current_time} to {end_datetime}")
+        logger.info(f"Slot duration: {slot_duration}, Buffer time: {buffer_time}")
 
         while current_time + slot_duration <= end_datetime:
             # Check if slot overlaps with break time
@@ -121,13 +140,18 @@ class DoctorService:
             )
 
             if not is_break_time:
-                slots.append({
+                slot = {
                     "start_time": current_time,
                     "end_time": current_time + slot_duration
-                })
+                }
+                logger.info(f"Adding slot: {slot['start_time']} to {slot['end_time']}")
+                slots.append(slot)
+            else:
+                logger.info(f"Skipping break time slot at {current_time}")
 
             current_time += slot_duration + buffer_time
 
+        logger.info(f"Total slots generated: {len(slots)}")
         return slots
 
     def _is_time_in_range(

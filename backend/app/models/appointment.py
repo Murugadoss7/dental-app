@@ -28,13 +28,27 @@ class AppointmentCreate(BaseModel):
     end_time: datetime
     reason: str
     notes: Optional[str] = None
+    status: Literal["scheduled", "completed", "cancelled", "rescheduled"] = "scheduled"
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_encoders={ObjectId: str},
+        from_attributes=True
+    )
 
 class AppointmentUpdate(BaseModel):
+    doctor_id: Optional[str] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     reason: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[Literal["scheduled", "completed", "cancelled", "rescheduled"]] = None
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_encoders={ObjectId: str},
+        from_attributes=True
+    )
 
 class AppointmentCancel(BaseModel):
     cancelled_reason: str = Field(..., min_length=1)
@@ -57,12 +71,13 @@ class AppointmentInDB(AppointmentBase):
     )
 
 class ParticipantInfo(BaseModel):
-    _id: str
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     first_name: str
     last_name: str
 
     model_config = ConfigDict(
         populate_by_name=True,
+        arbitrary_types_allowed=True,
         json_encoders={ObjectId: str},
         from_attributes=True
     )
