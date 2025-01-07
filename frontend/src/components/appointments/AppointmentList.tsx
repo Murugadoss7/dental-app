@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
     Table,
     TableBody,
@@ -145,15 +145,6 @@ export function AppointmentList() {
                 <div className="text-center py-8 text-gray-500">
                     No appointments found. Schedule your first appointment using the button above.
                 </div>
-                <AppointmentForm
-                    open={isFormOpen}
-                    onOpenChange={setIsFormOpen}
-                    appointment={selectedAppointment}
-                    onClose={() => {
-                        setIsFormOpen(false);
-                        setSelectedAppointment(null);
-                    }}
-                />
             </div>
         );
     }
@@ -224,12 +215,13 @@ export function AppointmentList() {
 
             <AppointmentForm
                 open={isFormOpen}
-                onOpenChange={setIsFormOpen}
-                appointment={selectedAppointment}
-                onClose={() => {
-                    setIsFormOpen(false);
-                    setSelectedAppointment(null);
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedAppointment(null);
+                    }
+                    setIsFormOpen(open);
                 }}
+                appointment={selectedAppointment}
             />
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

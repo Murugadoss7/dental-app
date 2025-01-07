@@ -6,6 +6,7 @@ import { PatientList } from "@/components/patients/PatientList";
 import { DoctorList } from "@/components/doctors/DoctorList";
 import { AppointmentList } from "@/components/appointments/AppointmentList";
 import { AppointmentSettings } from "@/components/settings/AppointmentSettings";
+import { Dashboard } from "@/pages/Dashboard";
 import { lazy, Suspense } from "react";
 
 const Treatment = lazy(() => import("@/pages/Treatment"));
@@ -18,7 +19,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<DashboardLayout />}>
-            <Route path="/" element={<div>Dashboard Coming Soon</div>} />
+            <Route path="/" element={<Dashboard />} />
             <Route path="/patients" element={<PatientList />} />
             <Route path="/doctors" element={<DoctorList />} />
             <Route path="/appointments" element={<AppointmentList />} />

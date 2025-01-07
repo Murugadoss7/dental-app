@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -28,7 +28,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster";
 
 // Types
 interface Patient {
@@ -165,10 +164,10 @@ export function AppointmentForm({ open, onOpenChange, appointment }: Appointment
     // Handle form submission
     const mutation = useMutation({
         mutationFn: async (values: AppointmentFormValues) => {
-            console.log('🚀 Mutation starting with values:', values);
+            console.log('🚀 Mutation starting with values:', JSON.stringify(values, null, 2));
 
             const selectedDoctor = doctors?.find(d => d._id === values.doctor_id);
-            console.log('🔍 Selected doctor:', selectedDoctor);
+            console.log('🔍 Selected doctor:', JSON.stringify(selectedDoctor, null, 2));
 
             if (!selectedDoctor) {
                 throw new Error('Selected doctor not found in available doctors list');
@@ -179,7 +178,7 @@ export function AppointmentForm({ open, onOpenChange, appointment }: Appointment
                 : "http://localhost:8000/api/appointments";
 
             console.log('🌐 Making request to:', url);
-            console.log('📦 Final request payload:', values);
+            console.log('📦 Final request payload:', JSON.stringify(values, null, 2));
 
             const response = await fetch(url, {
                 method: appointment ? "PUT" : "POST",
@@ -191,7 +190,7 @@ export function AppointmentForm({ open, onOpenChange, appointment }: Appointment
 
             const responseData = await response.json();
             console.log('📥 Response status:', response.status);
-            console.log('📥 Response data:', responseData);
+            console.log('📥 Response data:', JSON.stringify(responseData, null, 2));
 
             if (!response.ok) {
                 // Extract the error message from the response
@@ -472,7 +471,6 @@ export function AppointmentForm({ open, onOpenChange, appointment }: Appointment
                     </Form>
                 </DialogContent>
             </Dialog>
-            <Toaster />
         </>
     );
 } 

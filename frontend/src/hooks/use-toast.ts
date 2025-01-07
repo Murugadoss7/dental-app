@@ -72,12 +72,17 @@ const addToRemoveQueue = (toastId: string) => {
 }
 
 export const reducer = (state: State, action: Action): State => {
+    console.log('🍞 Reducer called with action:', action.type);
+    console.log('🍞 Current state:', state);
+
     switch (action.type) {
         case "ADD_TOAST":
-            return {
+            const newState = {
                 ...state,
                 toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
-            }
+            };
+            console.log('🍞 New state after ADD_TOAST:', newState);
+            return newState;
 
         case "UPDATE_TOAST":
             return {
@@ -90,8 +95,6 @@ export const reducer = (state: State, action: Action): State => {
         case "DISMISS_TOAST": {
             const { toastId } = action
 
-            // ! Side effects ! - This could be extracted into a dismissToast() action,
-            // but I'll keep it here for simplicity
             if (toastId) {
                 addToRemoveQueue(toastId)
             } else {
@@ -112,6 +115,7 @@ export const reducer = (state: State, action: Action): State => {
                 ),
             }
         }
+
         case "REMOVE_TOAST":
             if (action.toastId === undefined) {
                 return {
@@ -140,6 +144,7 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
+    console.log('🍞 Toast called with:', props);
     const id = genId()
 
     const update = (props: ToasterToast) =>
@@ -149,6 +154,7 @@ function toast({ ...props }: Toast) {
         })
     const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
+    console.log('🍞 Dispatching toast with ID:', id);
     dispatch({
         type: "ADD_TOAST",
         toast: {
@@ -160,6 +166,7 @@ function toast({ ...props }: Toast) {
             },
         },
     })
+    console.log('🍞 Toast dispatched');
 
     return {
         id: id,
