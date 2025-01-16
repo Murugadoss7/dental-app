@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useDebounce } from "@/hooks/useDebounce"
@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast"
 import { PatientForm } from "./PatientForm"
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { patientService } from '@/services/api';
+import type { Patient } from '@/types/patient';
 import {
     Table,
     TableBody,
@@ -16,101 +18,6 @@ import {
     TableRow,
 } from "@/components/ui/table"
 
-interface Address {
-    street: string
-    city: string
-    state: string
-    postal_code: string
-}
-
-interface MedicalHistory {
-    condition: string
-    diagnosed_date: string
-    notes: string
-}
-
-interface Patient {
-    id: string
-    _id: string
-    firstName: string
-    lastName: string
-    dateOfBirth: string
-    contactNumber: string
-    email: string
-    address: Address
-    medicalHistory: MedicalHistory[]
-    createdAt: string
-    updatedAt: string
-}
-
-interface BackendPatient {
-    _id: string
-    first_name: string
-    last_name: string
-    date_of_birth: string
-    contact_number: string
-    email: string
-    address: {
-        street: string
-        city: string
-        state: string
-        postal_code: string
-    }
-    medical_history: {
-        condition: string
-        diagnosed_date: string
-        notes: string
-    }[]
-    created_at: string
-    updated_at: string
-}
-
-interface BackendResponse {
-    patients: BackendPatient[]
-    page: number
-    per_page: number
-    total: number
-}
-
-function formatDateForInput(dateString: string): string {
-    return new Date(dateString).toISOString().split('T')[0]
-}
-
-function formatDateForDisplay(dateString: string): string {
-    return new Date(dateString).toLocaleDateString()
-}
-
-function mapBackendPatient(patient: BackendPatient): Patient {
-    return {
-        id: patient._id,
-        _id: patient._id,
-        firstName: patient.first_name,
-        lastName: patient.last_name,
-        dateOfBirth: formatDateForInput(patient.date_of_birth),
-        contactNumber: patient.contact_number,
-        email: patient.email,
-        address: {
-            street: patient.address.street,
-            city: patient.address.city,
-            state: patient.address.state,
-            postal_code: patient.address.postal_code,
-        },
-        medicalHistory: patient.medical_history.map(history => ({
-            condition: history.condition,
-            diagnosed_date: formatDateForInput(history.diagnosed_date),
-            notes: history.notes,
-        })),
-        createdAt: patient.created_at,
-        updatedAt: patient.updated_at,
-    }
-}
-
-interface PatientListProps {
-    patients: Patient[];
-    onEdit: (patient: Patient) => void;
-    onDelete: (id: string) => void;
-}
-
 export function PatientList() {
     const [search, setSearch] = useState("")
     const [isAddOpen, setIsAddOpen] = useState(false)
@@ -118,62 +25,45 @@ export function PatientList() {
     const debouncedSearch = useDebounce(search, 500)
     const { toast } = useToast()
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
-    const { data, isLoading, error } = useQuery<BackendPatient[]>({
+    const { data: patients = [], isLoading, error } = useQuery({
         queryKey: ["patients", debouncedSearch],
-        queryFn: async () => {
-            const response = await fetch(
-                `/api/patients${debouncedSearch ? `?search=${debouncedSearch}` : ""}`,
-                {
-                    headers: {
-                        "Accept": "application/json",
-                        "Content-Type": "application/json",
-                    },
-                }
-            )
-            if (!response.ok) {
-                const error = await response.json()
-                throw new Error(error.detail || "Failed to fetch patients")
-            }
-            return response.json()
-        },
-    })
+        queryFn: () => patientService.getAll()
+    });
 
-    const patients = (data || []).map(mapBackendPatient)
-
-    const handleDelete = async (id: string) => {
-        try {
-            const response = await fetch(`/api/patients/${id}`, {
-                method: "DELETE",
-            })
-
-            if (!response.ok) {
-                throw new Error("Failed to delete patient")
-            }
-
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => patientService.delete(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['patients'] });
             toast({
                 title: "Success",
-                description: "Patient deleted successfully",
-            })
-        } catch (error) {
+                description: "Patient deleted successfully"
+            });
+        },
+        onError: (error) => {
             toast({
                 title: "Error",
                 description: "Failed to delete patient",
-                variant: "destructive",
-            })
+                variant: "destructive"
+            });
         }
-    }
+    });
+
+    const handleDelete = (id: string) => {
+        deleteMutation.mutate(id);
+    };
 
     if (error) {
         return (
             <div className="p-4 text-red-500">
                 Error loading patients: {error instanceof Error ? error.message : "Unknown error"}
             </div>
-        )
+        );
     }
 
     if (isLoading) {
-        return <div>Loading...</div>
+        return <div>Loading...</div>;
     }
 
     return (
@@ -202,12 +92,12 @@ export function PatientList() {
                     {patients.map((patient) => (
                         <TableRow key={patient._id}>
                             <TableCell>
-                                {patient.firstName} {patient.lastName}
+                                {patient.first_name} {patient.last_name}
                             </TableCell>
                             <TableCell>{patient.email}</TableCell>
-                            <TableCell>{patient.contactNumber}</TableCell>
+                            <TableCell>{patient.contact_number}</TableCell>
                             <TableCell>
-                                {format(new Date(patient.dateOfBirth), 'PP')}
+                                {format(new Date(patient.date_of_birth), 'PP')}
                             </TableCell>
                             <TableCell className="space-x-2">
                                 <Button
@@ -250,5 +140,5 @@ export function PatientList() {
                 />
             )}
         </div>
-    )
+    );
 } 

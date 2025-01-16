@@ -1,23 +1,9 @@
 import React from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PatientList } from '../components/patients/PatientList';
-import { PatientForm } from '../components/patients/PatientForm';
-import { toast } from '../components/ui/use-toast';
-
-interface Patient {
-    _id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    contact_number: string;
-    date_of_birth: string;
-    address?: {
-        street: string;
-        city: string;
-        state: string;
-        postal_code: string;
-    };
-}
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { toast } from '@/components/ui/use-toast';
+import { PatientList } from '@/components/patients/PatientList';
+import { patientService } from '@/services/api';
+import type { Patient } from '@/types/patient';
 
 export default function Patients() {
     const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -26,15 +12,7 @@ export default function Patients() {
 
     // Create patient mutation
     const createMutation = useMutation({
-        mutationFn: async (data: Omit<Patient, '_id'>) => {
-            const response = await fetch('/api/patients', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!response.ok) throw new Error('Failed to create patient');
-            return response.json();
-        },
+        mutationFn: (data: Omit<Patient, '_id'>) => patientService.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['patients'] });
             toast({
@@ -43,7 +21,7 @@ export default function Patients() {
             });
             setIsFormOpen(false);
         },
-        onError: (error) => {
+        onError: (error: Error) => {
             toast({
                 title: 'Error',
                 description: error.message,
@@ -54,15 +32,7 @@ export default function Patients() {
 
     // Update patient mutation
     const updateMutation = useMutation({
-        mutationFn: async ({ id, data }: { id: string; data: Partial<Patient> }) => {
-            const response = await fetch(`/api/patients/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!response.ok) throw new Error('Failed to update patient');
-            return response.json();
-        },
+        mutationFn: ({ id, data }: { id: string; data: Partial<Patient> }) => patientService.update(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['patients'] });
             toast({
@@ -72,7 +42,7 @@ export default function Patients() {
             setIsFormOpen(false);
             setEditingPatient(null);
         },
-        onError: (error) => {
+        onError: (error: Error) => {
             toast({
                 title: 'Error',
                 description: error.message,
@@ -83,13 +53,7 @@ export default function Patients() {
 
     // Delete patient mutation
     const deleteMutation = useMutation({
-        mutationFn: async (id: string) => {
-            const response = await fetch(`/api/patients/${id}`, {
-                method: 'DELETE',
-            });
-            if (!response.ok) throw new Error('Failed to delete patient');
-            return response.json();
-        },
+        mutationFn: (id: string) => patientService.delete(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['patients'] });
             toast({
@@ -97,7 +61,7 @@ export default function Patients() {
                 description: 'Patient deleted successfully',
             });
         },
-        onError: (error) => {
+        onError: (error: Error) => {
             toast({
                 title: 'Error',
                 description: error.message,

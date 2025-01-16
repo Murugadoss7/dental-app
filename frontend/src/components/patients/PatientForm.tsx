@@ -20,6 +20,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { patientService } from '@/services/api'
+import type { Patient } from '@/types/patient'
 
 const addressSchema = z.object({
     street: z.string().min(1, "Street is required"),
@@ -29,19 +31,23 @@ const addressSchema = z.object({
 })
 
 const medicalHistorySchema = z.object({
-    condition: z.string().min(1, "Condition is required"),
-    diagnosed_date: z.string().min(1, "Diagnosed date is required"),
-    notes: z.string().optional().default(""),
+    allergies: z.array(z.string()).default([]),
+    conditions: z.array(z.string()).default([]),
+    medications: z.array(z.string()).default([])
 })
 
 const patientSchema = z.object({
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
-    dateOfBirth: z.string().min(1, "Date of birth is required"),
-    contactNumber: z.string().min(1, "Contact number is required"),
+    first_name: z.string().min(1, "First name is required"),
+    last_name: z.string().min(1, "Last name is required"),
+    date_of_birth: z.string().min(1, "Date of birth is required"),
+    contact_number: z.string().min(1, "Contact number is required"),
     email: z.string().email("Invalid email address"),
     address: addressSchema,
-    medicalHistory: z.array(medicalHistorySchema).optional().default([]),
+    medical_history: medicalHistorySchema.optional().default({
+        allergies: [],
+        conditions: [],
+        medications: []
+    }),
 })
 
 type PatientFormValues = z.infer<typeof patientSchema>
@@ -49,25 +55,7 @@ type PatientFormValues = z.infer<typeof patientSchema>
 interface PatientFormProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    patient: {
-        id: string
-        firstName: string
-        lastName: string
-        dateOfBirth: string
-        contactNumber: string
-        email: string
-        address: {
-            street: string
-            city: string
-            state: string
-            postal_code: string
-        }
-        medicalHistory: Array<{
-            condition: string
-            diagnosed_date: string
-            notes: string
-        }>
-    } | null
+    patient: Patient | null
 }
 
 function formatDateForInput(dateString: string): string {
@@ -82,16 +70,17 @@ export function PatientForm({ open, onOpenChange, patient }: PatientFormProps) {
         resolver: zodResolver(patientSchema),
         defaultValues: patient ? {
             ...patient,
-            dateOfBirth: formatDateForInput(patient.dateOfBirth),
-            medicalHistory: patient.medicalHistory.map(history => ({
-                ...history,
-                diagnosed_date: formatDateForInput(history.diagnosed_date),
-            })),
+            date_of_birth: formatDateForInput(patient.date_of_birth),
+            medical_history: patient.medical_history || {
+                allergies: [],
+                conditions: [],
+                medications: []
+            }
         } : {
-            firstName: "",
-            lastName: "",
-            dateOfBirth: "",
-            contactNumber: "",
+            first_name: "",
+            last_name: "",
+            date_of_birth: "",
+            contact_number: "",
             email: "",
             address: {
                 street: "",
@@ -99,50 +88,29 @@ export function PatientForm({ open, onOpenChange, patient }: PatientFormProps) {
                 state: "",
                 postal_code: "",
             },
-            medicalHistory: [],
+            medical_history: {
+                allergies: [],
+                conditions: [],
+                medications: []
+            }
         },
     })
 
     const mutation = useMutation({
-        mutationFn: async (values: PatientFormValues) => {
-            const backendValues = {
-                first_name: values.firstName,
-                last_name: values.lastName,
-                date_of_birth: new Date(values.dateOfBirth).toISOString(),
-                contact_number: values.contactNumber,
-                email: values.email,
-                address: {
-                    street: values.address.street,
-                    city: values.address.city,
-                    state: values.address.state,
-                    postal_code: values.address.postal_code,
-                },
-                medical_history: values.medicalHistory?.length
-                    ? values.medicalHistory.map(history => ({
-                        condition: history.condition,
-                        diagnosed_date: new Date(history.diagnosed_date).toISOString(),
-                        notes: history.notes || "",
-                    }))
-                    : []
-            }
-
-            const response = await fetch(
-                patient ? `/api/patients/${patient.id}` : "/api/patients",
-                {
-                    method: patient ? "PUT" : "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(backendValues),
+        mutationFn: (values: PatientFormValues) => {
+            const patientData = {
+                ...values,
+                date_of_birth: new Date(values.date_of_birth).toISOString(),
+                medical_history: {
+                    allergies: values.medical_history?.allergies || [],
+                    conditions: values.medical_history?.conditions || [],
+                    medications: values.medical_history?.medications || []
                 }
-            )
-
-            if (!response.ok) {
-                const error = await response.json()
-                throw new Error(error.detail || "Failed to save patient")
             }
 
-            return response.json()
+            return patient
+                ? patientService.update(patient._id, patientData)
+                : patientService.create(patientData)
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["patients"] })
@@ -181,7 +149,7 @@ export function PatientForm({ open, onOpenChange, patient }: PatientFormProps) {
                                     <h3 className="font-medium">Personal Information</h3>
                                     <FormField
                                         control={form.control}
-                                        name="firstName"
+                                        name="first_name"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>First Name</FormLabel>
@@ -194,7 +162,7 @@ export function PatientForm({ open, onOpenChange, patient }: PatientFormProps) {
                                     />
                                     <FormField
                                         control={form.control}
-                                        name="lastName"
+                                        name="last_name"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Last Name</FormLabel>
@@ -207,7 +175,7 @@ export function PatientForm({ open, onOpenChange, patient }: PatientFormProps) {
                                     />
                                     <FormField
                                         control={form.control}
-                                        name="dateOfBirth"
+                                        name="date_of_birth"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Date of Birth</FormLabel>
@@ -220,7 +188,7 @@ export function PatientForm({ open, onOpenChange, patient }: PatientFormProps) {
                                     />
                                     <FormField
                                         control={form.control}
-                                        name="contactNumber"
+                                        name="contact_number"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Contact Number</FormLabel>
@@ -304,102 +272,14 @@ export function PatientForm({ open, onOpenChange, patient }: PatientFormProps) {
                                 </div>
                             </div>
 
-                            {/* Medical History Section */}
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="font-medium">Medical History</h3>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                            const currentHistory = form.getValues("medicalHistory")
-                                            form.setValue("medicalHistory", [
-                                                ...currentHistory,
-                                                { condition: "", diagnosed_date: "", notes: "" },
-                                            ])
-                                        }}
-                                    >
-                                        Add Medical History
-                                    </Button>
-                                </div>
-                                <div className="space-y-4">
-                                    {form.watch("medicalHistory")?.map((_, index) => (
-                                        <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
-                                            <FormField
-                                                control={form.control}
-                                                name={`medicalHistory.${index}.condition`}
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Condition</FormLabel>
-                                                        <FormControl>
-                                                            <Input {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={form.control}
-                                                name={`medicalHistory.${index}.diagnosed_date`}
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Diagnosed Date</FormLabel>
-                                                        <FormControl>
-                                                            <Input type="date" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <div className="md:col-span-2">
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`medicalHistory.${index}.notes`}
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>Notes</FormLabel>
-                                                            <FormControl>
-                                                                <Input {...field} />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </div>
-                                            <div className="md:col-span-2 flex justify-end">
-                                                <Button
-                                                    type="button"
-                                                    variant="destructive"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        const currentHistory = form.getValues("medicalHistory")
-                                                        form.setValue(
-                                                            "medicalHistory",
-                                                            currentHistory.filter((_, i) => i !== index)
-                                                        )
-                                                    }}
-                                                >
-                                                    Remove
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                            <div className="flex justify-end">
+                                <Button type="submit" disabled={mutation.isPending}>
+                                    {mutation.isPending ? "Saving..." : "Save Patient"}
+                                </Button>
                             </div>
                         </form>
                     </Form>
                 </ScrollArea>
-                <div className="px-6 py-4 bg-white border-t flex justify-end space-x-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
-                        Cancel
-                    </Button>
-                    <Button type="submit" onClick={form.handleSubmit(onSubmit)}>Save</Button>
-                </div>
             </DialogContent>
         </Dialog>
     )

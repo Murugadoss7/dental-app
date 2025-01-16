@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Treatment, Prescription, TreatmentPlan } from '@/types/treatment';
-import { treatmentService } from '@/services/treatmentService';
+import { Treatment, Prescription, TreatmentPlan, TreatmentPlanItem } from '@/types/treatment';
+import { treatmentService } from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToothChart } from './ToothChart';
@@ -16,44 +16,92 @@ interface TreatmentSessionProps {
     doctorId: string;
 }
 
+interface TreatmentPlanFormProps {
+    treatments: TreatmentPlanItem[];
+    onUpdate: (treatments: TreatmentPlanItem[]) => void;
+}
+
 export function TreatmentSession({ patientId, doctorId }: TreatmentSessionProps) {
     const [activeTab, setActiveTab] = useState('diagnosis');
+    const [pendingTreatments, setPendingTreatments] = useState<TreatmentPlanItem[]>([]);
     const queryClient = useQueryClient();
     const { toast } = useToast();
 
     // Fetch patient's treatments
     const { data: treatments, isLoading: isLoadingTreatments } = useQuery({
         queryKey: ['treatments', patientId],
-        queryFn: () => treatmentService.getPatientTreatments(patientId),
+        queryFn: async () => {
+            console.log('Fetching treatments for patient:', patientId);
+            const result = await treatmentService.getByPatient(patientId);
+            console.log('Treatments result:', result);
+            return result;
+        },
         enabled: !!patientId
     });
 
     // Fetch treatment plans
     const { data: treatmentPlans, isLoading: isLoadingPlans } = useQuery({
         queryKey: ['treatmentPlans', patientId],
-        queryFn: () => treatmentService.getPatientTreatmentPlans(patientId),
+        queryFn: async () => {
+            console.log('Fetching treatment plans for patient:', patientId);
+            const result = await treatmentService.getPatientPlans(patientId);
+            console.log('Treatment plans result:', result);
+            return result;
+        },
         enabled: !!patientId
     });
 
     // Fetch prescriptions for the latest treatment
     const { data: prescriptions, isLoading: isLoadingPrescriptions } = useQuery({
         queryKey: ['prescriptions', treatments?.[0]?._id],
-        queryFn: () => treatmentService.getTreatmentPrescriptions(treatments?.[0]?._id),
+        queryFn: async () => {
+            const treatmentId = treatments?.[0]?._id;
+            console.log('Fetching prescriptions for treatment:', treatmentId);
+            if (!treatmentId) return [];
+            const result = await treatmentService.getTreatmentPrescriptions(treatmentId);
+            console.log('Prescriptions result:', result);
+            return result;
+        },
         enabled: !!treatments?.[0]?._id
+    });
+
+    console.log('Current data state:', {
+        treatments,
+        treatmentPlans,
+        prescriptions,
+        isLoading: isLoadingTreatments || isLoadingPlans || isLoadingPrescriptions
     });
 
     // Create treatment mutation
     const createTreatmentMutation = useMutation({
-        mutationFn: treatmentService.createTreatment,
-        onSuccess: () => {
+        mutationFn: (data: Partial<Treatment>) => treatmentService.create(data),
+        onSuccess: (createdTreatment) => {
             queryClient.invalidateQueries({ queryKey: ['treatments', patientId] });
+
+            // Convert clinical findings to treatment plan items
+            const treatmentItems: TreatmentPlanItem[] = createdTreatment.clinical_findings.map(finding => ({
+                finding_id: finding.id,
+                treatment_name: finding.recommended_treatment.name,
+                teeth_involved: {
+                    group: finding.teeth.group,
+                    numbers: finding.teeth.numbers
+                },
+                category: finding.issue.name,
+                finding_notes: finding.finding,
+                estimated_cost: 0,
+                status: 'planned',
+                priority: 'medium'
+            }));
+
+            setPendingTreatments(treatmentItems);
+
             toast({
                 title: "Success",
                 description: "Treatment record created successfully",
                 variant: "default",
                 duration: 3000,
             });
-            setActiveTab('history'); // Switch to history tab after successful creation
+            setActiveTab('treatment-plan'); // Switch to treatment plan tab to set costs and schedule
         },
         onError: (error: any) => {
             console.error('Treatment creation error:', error);
@@ -92,7 +140,7 @@ export function TreatmentSession({ patientId, doctorId }: TreatmentSessionProps)
 
     // Create treatment plan mutation
     const createTreatmentPlanMutation = useMutation({
-        mutationFn: treatmentService.createTreatmentPlan,
+        mutationFn: (data: Partial<TreatmentPlan>) => treatmentService.createPlan(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['treatmentPlans', patientId] });
             toast({
@@ -133,25 +181,44 @@ export function TreatmentSession({ patientId, doctorId }: TreatmentSessionProps)
                     </TabsList>
 
                     <TabsContent value="diagnosis">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <ToothChart />
-                            </div>
-                            <div>
-                                <DiagnosisForm
-                                    onSubmit={(data) => {
-                                        const treatmentData = {
-                                            ...data,
-                                            patient_id: patientId,
-                                            doctor_id: doctorId,
-                                            date: new Date().toISOString()
-                                        };
-                                        console.log('Submitting treatment:', treatmentData);
-                                        createTreatmentMutation.mutate(treatmentData);
-                                    }}
-                                />
-                            </div>
-                        </div>
+                        <DiagnosisForm
+                            onSubmit={async (data) => {
+                                try {
+                                    // Create treatment record
+                                    const treatmentData = {
+                                        patient_id: patientId,
+                                        doctor_id: doctorId,
+                                        date: new Date().toISOString(),
+                                        chief_complaint: data.chief_complaint,
+                                        diagnosis: data.diagnosis,
+                                        clinical_findings: data.clinical_findings,
+                                        teeth_involved: data.clinical_findings.flatMap(f => f.teeth.numbers),
+                                        treatment_notes: data.clinical_findings
+                                            .map(f => `${f.issue.name}: ${f.finding}\nRecommended Treatment: ${f.recommended_treatment.name}`)
+                                            .join('\n\n')
+                                    };
+
+                                    // Save the treatment record
+                                    await createTreatmentMutation.mutateAsync(treatmentData);
+
+                                    toast({
+                                        title: "Success",
+                                        description: "Treatment record created successfully",
+                                        variant: "default",
+                                        duration: 3000,
+                                    });
+                                    setActiveTab('history'); // Switch to history tab to see the created treatment
+                                } catch (error: any) {
+                                    console.error('Treatment creation error:', error);
+                                    toast({
+                                        title: "Error",
+                                        description: error.response?.data?.detail || "Failed to create treatment record",
+                                        variant: "destructive",
+                                        duration: 5000,
+                                    });
+                                }
+                            }}
+                        />
                     </TabsContent>
 
                     <TabsContent value="prescription">
@@ -179,9 +246,15 @@ export function TreatmentSession({ patientId, doctorId }: TreatmentSessionProps)
 
                     <TabsContent value="treatment-plan">
                         <TreatmentPlanForm
-                            onSubmit={(data) => {
+                            treatments={pendingTreatments}
+                            onUpdate={(updatedTreatments) => {
+                                // Just update the local state
+                                setPendingTreatments(updatedTreatments);
+                            }}
+                            onSave={(treatments) => {
+                                // Create the treatment plan only when save is clicked
                                 const planData = {
-                                    ...data,
+                                    treatments,
                                     patient_id: patientId,
                                     start_date: new Date().toISOString()
                                 };

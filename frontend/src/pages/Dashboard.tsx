@@ -15,34 +15,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-
-interface Appointment {
-    _id: string;
-    patient: {
-        _id: string;
-        first_name: string;
-        last_name: string;
-    };
-    doctor: {
-        _id: string;
-        first_name: string;
-        last_name: string;
-    };
-    start_time: string;
-    end_time: string;
-    status: 'scheduled' | 'completed' | 'cancelled';
-    reason: string;
-}
-
-// Request structure for updating appointments
-interface AppointmentRequest {
-    patient_id: string;
-    doctor_id: string;
-    start_time: string;
-    end_time: string;
-    status: 'scheduled' | 'completed' | 'cancelled';
-    reason: string;
-}
+import { appointmentService } from '@/services/api';
+import type { Appointment, AppointmentStatus } from '@/types/appointment';
 
 function getStatusColor(status: Appointment['status']) {
     switch (status) {
@@ -164,59 +138,28 @@ export function Dashboard() {
 
     // Fetch today's appointments
     const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
-        queryKey: ["appointments", "today"],
-        queryFn: async () => {
-            const today = new Date();
-            const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-            const endOfDay = new Date(today.setHours(23, 59, 59, 999)).toISOString();
-
-            const response = await fetch(
-                `http://localhost:8000/api/appointments?start_time=${startOfDay}&end_time=${endOfDay}`
-            );
-            if (!response.ok) {
-                throw new Error("Failed to fetch appointments");
-            }
-            return response.json();
-        },
+        queryKey: ['appointments', 'today'],
+        queryFn: appointmentService.getTodayAppointments
     });
 
     // Update appointment status mutation
     const updateStatusMutation = useMutation({
-        mutationFn: async ({ appointmentId, status }: { appointmentId: string; status: Appointment['status'] }) => {
-            // Get the current appointment data first
+        mutationFn: async ({ appointmentId, status }: { appointmentId: string; status: AppointmentStatus }) => {
             const currentAppointment = appointments.find(apt => apt._id === appointmentId);
             if (!currentAppointment) {
                 throw new Error('Appointment not found');
             }
 
-            // Prepare the update data with all required fields
-            const updateData: Partial<AppointmentRequest> = {
+            return appointmentService.update(appointmentId, {
                 patient_id: currentAppointment.patient._id,
                 doctor_id: currentAppointment.doctor._id,
                 start_time: currentAppointment.start_time,
                 end_time: currentAppointment.end_time,
                 status: status,
                 reason: currentAppointment.reason,
-            };
-
-            console.log('🚀 Updating appointment with data:', JSON.stringify(updateData, null, 2));
-
-            const response = await fetch(`http://localhost:8000/api/appointments/${appointmentId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(updateData),
             });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to update appointment status');
-            }
-
-            return response.json();
         },
-        onSuccess: (data) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
             toast({
                 title: "Status Updated",
@@ -232,7 +175,7 @@ export function Dashboard() {
         },
     });
 
-    const handleStatusUpdate = (appointmentId: string, newStatus: Appointment['status']) => {
+    const handleStatusUpdate = (appointmentId: string, newStatus: AppointmentStatus) => {
         updateStatusMutation.mutate({ appointmentId, status: newStatus });
     };
 

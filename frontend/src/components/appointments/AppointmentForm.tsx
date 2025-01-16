@@ -28,6 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect } from "react";
+import { patientService } from '@/services/api';
 
 // Types
 interface Patient {
@@ -103,11 +104,7 @@ export function AppointmentForm({ open, onOpenChange, appointment }: Appointment
     // Fetch patients list
     const { data: patients, isLoading: isPatientsLoading } = useQuery<Patient[]>({
         queryKey: ["patients"],
-        queryFn: async () => {
-            const response = await fetch("http://localhost:8000/api/patients");
-            if (!response.ok) throw new Error("Failed to fetch patients");
-            return response.json();
-        }
+        queryFn: patientService.getAll,
     });
 
     // Initialize form with empty values

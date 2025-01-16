@@ -80,7 +80,13 @@ export function TreatmentHistory({ treatments, treatmentPlans, prescriptions }: 
                                     </div>
                                     <div>
                                         <h4 className="font-medium">Clinical Findings</h4>
-                                        <p className="text-gray-600">{treatment.clinical_findings}</p>
+                                        <div className="space-y-1 text-gray-600">
+                                            {treatment.clinical_findings.map((f, i) => (
+                                                <p key={i}>
+                                                    Teeth {f.teeth.numbers.join(', ')}: {f.issue.name} - {f.finding}
+                                                </p>
+                                            ))}
+                                        </div>
                                     </div>
                                     <div>
                                         <h4 className="font-medium">Treatment Notes</h4>
@@ -89,7 +95,7 @@ export function TreatmentHistory({ treatments, treatmentPlans, prescriptions }: 
                                     <div>
                                         <h4 className="font-medium">Teeth Involved</h4>
                                         <div className="flex gap-2 flex-wrap">
-                                            {treatment.teeth_involved.map((tooth) => (
+                                            {treatment.teeth_involved?.map((tooth) => (
                                                 <Badge key={tooth} variant="secondary">
                                                     {tooth}
                                                 </Badge>
@@ -157,27 +163,27 @@ export function TreatmentHistory({ treatments, treatmentPlans, prescriptions }: 
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {plan.procedures.map((procedure, index) => (
+                                    {plan.treatments.map((treatment, index) => (
                                         <TableRow key={index}>
-                                            <TableCell>{procedure.description}</TableCell>
+                                            <TableCell>{treatment.treatment_name}</TableCell>
                                             <TableCell>
                                                 <Badge
-                                                    className={getStatusColor(procedure.status)}
+                                                    className={getStatusColor(treatment.status)}
                                                     variant="secondary"
                                                 >
-                                                    {procedure.status}
+                                                    {treatment.status}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
                                                 <Badge
-                                                    className={getPriorityColor(procedure.priority)}
+                                                    className={getPriorityColor(treatment.priority)}
                                                     variant="secondary"
                                                 >
-                                                    {procedure.priority}
+                                                    {treatment.priority}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                ${procedure.estimated_cost.toFixed(2)}
+                                                ${treatment.estimated_cost?.toFixed(2) || '0.00'}
                                             </TableCell>
                                         </TableRow>
                                     ))}

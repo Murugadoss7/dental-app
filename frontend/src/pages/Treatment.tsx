@@ -2,6 +2,8 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { TreatmentSession } from '../components/treatments/TreatmentSession';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { patientService } from '@/services/api';
+import type { Patient } from '@/types/patient';
 
 // TODO: Replace with proper authentication
 const TEMP_DOCTOR_ID = "6558e65d2b2d4a9b4d0e0f1a";
@@ -9,15 +11,9 @@ const TEMP_DOCTOR_ID = "6558e65d2b2d4a9b4d0e0f1a";
 export default function Treatment() {
     const { patientId } = useParams<{ patientId: string }>();
 
-    const { data: patient, isLoading } = useQuery({
+    const { data: patient, isLoading } = useQuery<Patient>({
         queryKey: ['patient', patientId],
-        queryFn: async () => {
-            const response = await fetch(`/api/patients/${patientId}`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch patient');
-            }
-            return response.json();
-        },
+        queryFn: () => patientService.getById(patientId!),
         enabled: !!patientId
     });
 
